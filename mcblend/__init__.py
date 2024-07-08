@@ -7,7 +7,6 @@ from bpy.props import (
     PointerProperty, CollectionProperty, IntProperty, EnumProperty
 )
 
-
 from .operator import (
     MCBLEND_OT_ExportModel, MCBLEND_OT_ExportAnimation,
     MCBLEND_OT_MapUv, MCBLEND_OT_UvGroup,
@@ -21,7 +20,6 @@ from .operator import (
     MCBLEND_OT_ListAnimations,
     MCBLEND_OT_AddAnimation,
     MCBLEND_OT_RemoveAnimation,
-
 
     MCBLEND_OT_ListUvGroups,
     MCBLEND_OT_AddUvGroup,
@@ -149,14 +147,12 @@ classes = (
     MCBLEND_PT_UVGroupPanel,
     MCBLEND_UL_UVGroupList,
 
-
     MCBLEND_OT_AddEvent,
     MCBLEND_OT_RemoveEvent,
     MCBLEND_OT_AddEffect,
     MCBLEND_OT_RemoveEffect,
     MCBLEND_PT_EventsPanel,
     MCBLEND_UL_EventsList,
-
 
     MCBLEND_OT_ListAnimations,
     MCBLEND_OT_AddAnimation,
@@ -216,6 +212,7 @@ classes = (
     MCBLEND_OT_MergeModels,
 )
 
+
 def register():
     '''Registers the plugin'''
     # pylint: disable=assignment-from-no-return, no-member
@@ -259,15 +256,13 @@ def register():
         type=MCBLEND_BoneProperties)
 
     # Append operators to the F3 menu
-    bpy.types.TOPBAR_MT_file_export.append(  # type: ignore
-        menu_func_mcblend_export_model
-    )
-    bpy.types.TOPBAR_MT_file_export.append(  # type: ignore
+    bpy.types.TOPBAR_MT_file_export.append(
         menu_func_mcblend_export_animation
     )
     bpy.types.TOPBAR_MT_file_import.append(  # type: ignore
         menu_func_mcblend_import_model
     )
+
 
 def unregister():
     '''Unregisters the plugin'''
@@ -275,9 +270,6 @@ def unregister():
     for _class in reversed(classes):
         bpy.utils.unregister_class(_class)  # type: ignore
 
-    bpy.types.TOPBAR_MT_file_export.remove(  # type: ignore
-        menu_func_mcblend_export_model
-    )
     bpy.types.TOPBAR_MT_file_export.remove(  # type: ignore
         menu_func_mcblend_export_animation
     )
