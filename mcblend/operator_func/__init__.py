@@ -3,6 +3,7 @@ Functions used directly by the blender operators.
 '''
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import (
     Dict, Iterable, List, Literal, Optional, Tuple, cast, Callable, Any)
@@ -80,6 +81,7 @@ def export_animation(context: Context, armature: bpy.types.Object) -> Dict[str, 
     :param armature: the armature object to export animation from.
     :returns: JSON dict of Minecraft animations.
     '''
+    logging.info(f'Exporting animation for {armature.name}')
     if armature is None or armature.type != 'ARMATURE':
         # Should never happen (checked in the operator)
         raise ValueError("Selected object is not an armature")
@@ -111,6 +113,8 @@ def export_animation(context: Context, armature: bpy.types.Object) -> Dict[str, 
         }
     )
     animation.load_poses(object_properties, context)
+
+    logging.info(f'Animation exported for {armature.name}: {animation}')
     return animation.json(
         old_json=None, skip_rest_poses=anim_data.skip_rest_poses)
 

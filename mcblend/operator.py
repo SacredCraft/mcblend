@@ -172,7 +172,7 @@ class MCBLEND_OT_ExportAnimation(  # pyright: ignore[reportIncompatibleMethodOve
         # Save file and finish
         with open(filepath, 'w', encoding='utf8') as f:  # type: ignore
             json.dump(animation_dicts, f, cls=CompactEncoder)
-        self.report({'INFO'}, f'Animations saved in {filepath}.')
+        self.report({'INFO'}, f'导出动画序列到 {filepath}')
         return {'FINISHED'}
 
 
