@@ -35,8 +35,7 @@ from .db_handler import get_db_handler
 from .rp_importer import PksForModelImport
 
 
-def export_model(
-        context: Context) -> Tuple[Dict[str, Any], Iterable[str]]:
+def export_model(context: Context) -> Tuple[Dict[str, Any], Iterable[str]]:
     '''
     Creates a Minecraft model JSON dict from selected objects.
 
@@ -72,7 +71,7 @@ def export_model(
     return result, model.yield_warnings()
 
 
-def export_animations(context: Context) -> dict[str, Any] | list[dict[str, Any]]:
+def export_animation(context: Context) -> dict[str, Any] | list[dict[str, Any]]:
     '''
     Creates Minecraft animations (dictionary) from selected objects.
 
@@ -102,7 +101,7 @@ def export_animations(context: Context) -> dict[str, Any] | list[dict[str, Any]]
         object_properties = McblendObjectGroup(obj, world_origin)
 
         animation = AnimationExport(
-            name=anim_data.name,
+            name=get_mcblend(obj).model_name,
             length=(context.scene.frame_end - 1) / context.scene.render.fps,
             loop_animation=anim_data.loop,
             single_frame=anim_data.single_frame,
@@ -115,8 +114,7 @@ def export_animations(context: Context) -> dict[str, Any] | list[dict[str, Any]]
             }
         )
         animation.load_poses(object_properties, context)
-        animations.append(animation.json(
-            old_json=None, skip_rest_poses=anim_data.skip_rest_poses))
+        animations.append(animation.json(skip_rest_poses=anim_data.skip_rest_poses))
 
     # Return the first element if size is 1
     if len(animations) == 1:

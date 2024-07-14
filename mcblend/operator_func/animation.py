@@ -4,7 +4,7 @@ Functions related to exporting animations.
 from __future__ import annotations
 
 from typing import NamedTuple, Dict, Optional, List, Tuple, Set, cast, Any
-import math # pyright: ignore[reportShadowedImports]
+import math  # pyright: ignore[reportShadowedImports]
 from dataclasses import dataclass, field
 from itertools import tee, islice  # pyright: ignore[reportShadowedImports]
 from decimal import Decimal
@@ -24,7 +24,7 @@ from .common import (
 def _pick_closest_rotation(
         base: NumpyTable, close_to: NumpyTable,
         original_rotation: Optional[NumpyTable] = None
-    ) -> NumpyTable:
+) -> NumpyTable:
     '''
     Takes two arrays with euler rotations in degrees. Looks for rotations
     that result in same orientation ad the base rotation. Picks the vector
@@ -72,15 +72,16 @@ def _pick_closest_rotation(
     distance1, choice1 = _pick_closest_location(base, close_to)
     distance2, choice2 = _pick_closest_location(  # Counterintuitive but works
         (
-            base +
-            np.array([180, 180 + original_rotation[1] * 2, 180])) *
-            np.array([1, -1, 1]
-        ),
+                base +
+                np.array([180, 180 + original_rotation[1] * 2, 180])) *
+        np.array([1, -1, 1]
+                 ),
         close_to
     )
     if distance2 < distance1:
         return choice2
     return choice1
+
 
 def frame_to_t(frame: float, fps: float) -> str:
     '''
@@ -89,10 +90,11 @@ def frame_to_t(frame: float, fps: float) -> str:
     :code:`ANIMATION_TIMESTAMP_PRECISION` constant. The result is returned
     as a string with a normalized form of a decimal number.
     '''
-    timestamp = Decimal((frame-1) / fps)
+    timestamp = Decimal((frame - 1) / fps)
     return str(round(timestamp, ANIMATION_TIMESTAMP_PRECISION).normalize())
 
-def _get_keyframes(context: Context, prec: int=1) -> List[float]:
+
+def _get_keyframes(object_properties: McblendObjectGroup, prec: int = 1) -> List[float]:
     '''
     Lists keyframe numbers of the animation from keyframes of NLA tracks and
     actions of the active object. The results are returned as float (allowing
@@ -112,6 +114,7 @@ def _get_keyframes(context: Context, prec: int=1) -> List[float]:
     :param context: the context of running the operator.
     :returns: the list of the keyframes for the animation.
     '''
+
     # pylint: disable=too-many-nested-blocks
 
     def get_action_keyframes(action: Action) -> List[float]:
@@ -127,7 +130,8 @@ def _get_keyframes(context: Context, prec: int=1) -> List[float]:
         return result
 
     keyframes: Set[float] = set()
-    obj = context.object
+
+    obj = object_properties.object
     if obj is None:
         return []
     if obj.animation_data is None:  # type: ignore
@@ -146,23 +150,23 @@ def _get_keyframes(context: Context, prec: int=1) -> List[float]:
             strip_action_keyframes = get_action_keyframes(strip.action)
             # Scale/strip the action data with the strip
             # transformations
-            offset =  strip.frame_start
-            limit_down =  strip.action_frame_start
-            limit_up =  strip.action_frame_end
-            scale =  strip.scale
+            offset = strip.frame_start
+            limit_down = strip.action_frame_start
+            limit_up = strip.action_frame_end
+            scale = strip.scale
             cycle_length = limit_up - limit_down
             scaled_cycle_length = cycle_length * scale
-            repeat =  strip.repeat
+            repeat = strip.repeat
             for keyframe in sorted(strip_action_keyframes):
                 if keyframe < limit_down or keyframe > limit_up:
                     continue
                 transformed_keyframe_base = keyframe * scale
                 for i in range(math.ceil(repeat)):
                     transformed_keyframe = (
-                        (i * scaled_cycle_length) +
-                        transformed_keyframe_base
+                            (i * scaled_cycle_length) +
+                            transformed_keyframe_base
                     )
-                    if transformed_keyframe/scaled_cycle_length > repeat:
+                    if transformed_keyframe / scaled_cycle_length > repeat:
                         # Can happen when we've got for example 4th
                         # repeat but we only need 3.5
                         break
@@ -170,6 +174,7 @@ def _get_keyframes(context: Context, prec: int=1) -> List[float]:
                         transformed_keyframe + offset, strip.frame_end)
                     keyframes.add(round(transformed_keyframe, prec))
     return sorted(keyframes)  # Sorted list of ints
+
 
 class PoseBone(NamedTuple):
     '''Properties of a pose of single bone.'''
@@ -193,15 +198,15 @@ class PoseBone(NamedTuple):
             parent_name=original.parent_name
         )
 
+
 class Pose:
     '''A pose in a frame of animation.'''
+
     def __init__(self) -> None:
         self.pose_bones: Dict[str, PoseBone] = {}
         '''dict of bones in a pose keyed by the name of the bones'''
 
-    def load_poses(
-            self, object_properties: McblendObjectGroup
-        ):
+    def load_poses(self, object_properties: McblendObjectGroup):
         '''
         Builds :class:`Pose` object from object properties.
 
@@ -219,12 +224,13 @@ class Pose:
                 # Rotation
                 rotation = objprop.get_mcrotation(objprop.parent)
                 if objprop.parent is not None:
-                    parent_name=objprop.parent.obj_name
+                    parent_name = objprop.parent.obj_name
                 else:
-                    parent_name=None
+                    parent_name = None
                 self.pose_bones[objprop.obj_name] = PoseBone(
                     name=objprop.obj_name, location=location, scale=scale,
                     rotation=rotation, parent_name=parent_name)
+
 
 @dataclass
 class AnimationExport:
@@ -261,10 +267,7 @@ class AnimationExport:
     sound_effects: Dict[int, List[Dict[Any, Any]]] = field(default_factory=dict)
     particle_effects: Dict[int, List[Dict[Any, Any]]] = field(default_factory=dict)
 
-    def load_poses(
-            self, object_properties: McblendObjectGroup,
-            context: Context
-        ):
+    def load_poses(self, object_properties: McblendObjectGroup, context: Context):
         '''
         Populates the poses dictionary of this object.
 
@@ -284,10 +287,10 @@ class AnimationExport:
                 # The frame value in the dictionary key doesn't really matter
                 self.poses[float(original_frame)] = pose
             else:
-                for keyframe in _get_keyframes(context):
+                for keyframe in _get_keyframes(object_properties):
                     if (
-                        keyframe < context.scene.frame_start or
-                        keyframe > context.scene.frame_end
+                            keyframe < context.scene.frame_start or
+                            keyframe > context.scene.frame_end
                     ):
                         continue  # skip frames out of range
 
@@ -315,8 +318,9 @@ class AnimationExport:
             context.scene.frame_set(original_frame)
 
     def json(
-            self, old_json: Optional[Dict[str, Any]]=None,
-            skip_rest_poses: bool=True) -> Dict[str, Any]:
+            self,
+            old_json: Optional[Dict[str, Any]] = None,
+            skip_rest_poses: bool = True) -> Dict[str, Any]:
         '''
         Returns the JSON dict with Minecraft animation. If JSON dict with
         valid animation file is passed to the function the function
@@ -368,7 +372,6 @@ class AnimationExport:
                     sound_effects[frame_to_t(key_frame, self.fps)] = value
                 result["animations"][f"animation.{self.name}"][
                     'sound_effects'] = sound_effects
-
             data = result["animations"][f"animation.{self.name}"]
             if self.loop_animation == AnimationLoopType.TRUE.value:
                 data['loop'] = True

@@ -37,10 +37,12 @@ ANIMATION_TIMESTAMP_PRECISION = 2
 The number of decimal places in timestamps in animations to use during export.
 '''
 
+
 class ModelOriginType(Enum):
     '''Defines what should be used as the origin of the model.'''
     WORLD = 'world'
     ARMATURE = 'armature'
+
 
 class AnimationLoopType(Enum):
     '''The types of the loop property from Minecraft animations'''
@@ -48,11 +50,13 @@ class AnimationLoopType(Enum):
     FALSE = 'false'
     HOLD_ON_LAST_FRAME = 'hold_on_last_frame'
 
+
 class MCObjType(Enum):
     '''The types of Minecraft objects created from blender objects.'''
     CUBE = 'CUBE'
     BONE = 'BONE'
     LOCATOR = 'LOCATOR'
+
 
 class MeshType(Enum):
     '''
@@ -61,6 +65,7 @@ class MeshType(Enum):
     '''
     CUBE = 'Cube'
     POLY_MESH = 'Poly Mesh'
+
 
 class ObjectId(NamedTuple):
     '''
@@ -76,6 +81,7 @@ class ObjectId(NamedTuple):
     '''
     name: str
     bone_name: str
+
 
 class McblendObject:
     '''
@@ -150,7 +156,7 @@ class McblendObject:
     @min_uv_size.setter
     def min_uv_size(self, min_uv_size: NumpyTable):
         get_mcblend(self.thisobj).min_uv_size = cast(
-            tuple[int, int, int],min_uv_size)
+            tuple[int, int, int], min_uv_size)
 
     @property
     def mesh_type(self) -> MeshType:
@@ -223,13 +229,13 @@ class McblendObject:
         this_obj_matrix_world = self.thisobj.matrix_world.copy()
         if self.group.world_origin is not None:
             this_obj_matrix_world = (
-                self.group.world_origin.matrix_world.inverted() @
-                this_obj_matrix_world
+                    self.group.world_origin.matrix_world.inverted() @
+                    this_obj_matrix_world
             )
         if self.thisobj.type == 'ARMATURE':
             return (
-                this_obj_matrix_world @
-                self.thisobj.pose.bones[self.thisobj_id.bone_name].matrix.copy()
+                    this_obj_matrix_world @
+                    self.thisobj.pose.bones[self.thisobj_id.bone_name].matrix.copy()
             )
         return this_obj_matrix_world
 
@@ -256,9 +262,10 @@ class McblendObject:
         '''
         The pivot point of Minecraft object exported using this object.
         '''
+
         def local_crds(
                 parent: McblendObject, child: McblendObject
-            ) -> Vector:
+        ) -> Vector:
             '''Local coordinates of child matrix inside parent matrix'''
             # Applying normalize() function to matrix world of parent and child
             # suppose to fix some errors with scaling but tests doesn't show any
@@ -279,7 +286,7 @@ class McblendObject:
 
     def get_local_matrix(
             self, other: Optional[McblendObject] = None, normalize: bool = False
-        ) -> Matrix:
+    ) -> Matrix:
         '''
         Returns translation matrix of this object optionally in translation
         space of the other :class:`McblendObject`.
@@ -306,7 +313,7 @@ class McblendObject:
 
     def get_mcrotation(
             self, other: Optional[McblendObject] = None
-        ) -> NumpyTable:
+    ) -> NumpyTable:
         '''
         Returns the Minecraft rotation of this object optionally in relation
         to the other :class:`McblendObject`.
@@ -316,9 +323,10 @@ class McblendObject:
         :returns: numpy array with the rotation of this object in Minecraft
             format.
         '''
+
         def local_rotation(
                 child_matrix: Matrix, parent_matrix: Matrix
-            ) -> Euler:
+        ) -> Euler:
             '''
             Returns Euler rotation of a child matrix in relation to parent matrix
             '''
@@ -334,7 +342,7 @@ class McblendObject:
             result_euler = self.obj_matrix_world.to_euler('XZY')
         result: NumpyTable = np.array(result_euler)[[0, 2, 1]]
         result = result * np.array([1, -1, 1])
-        result = result * 180/math.pi  # math.degrees() for array
+        result = result * 180 / math.pi  # math.degrees() for array
         return result
 
     def cube_polygons(self) -> CubePolygons:
@@ -439,7 +447,7 @@ class McblendObject:
                 else:
                     groups[b] = aptr
                     aptr.value = min(a, b, aptr.value)
-            elif bptr.value != -1: # aptr.value is None
+            elif bptr.value != -1:  # aptr.value is None
                 groups[a] = bptr
                 bptr.value = min(a, b, bptr.value)
             else:  # aptr.value is None and bptr.value is None
@@ -447,10 +455,12 @@ class McblendObject:
                 aptr.value = min(a, b)
         return tuple(i.value for i in groups)
 
+
 FaceName: TypeAlias = Literal[
     'north', 'east', 'south', 'west', 'up', 'down']
 FacePattern: TypeAlias = Literal[
     '---', '+--', '-+-', '++-', '--+', '+-+', '-++', '+++']
+
 
 # TODO - CubePolygonsSolver, CubePolygons and CubePolygon is a messy structure
 # maybe CubePolygonsSolver should be removed
@@ -482,18 +492,18 @@ class CubePolygonsSolver:
     MC_MAPPING_UV_ORDERS: ClassVar[
         dict[tuple[FaceName, bool], tuple[str, str, str, str]]
     ] = {
-        ('east', False) :('-+-', '---', '--+', '-++'),
-        ('north', False) :('---', '+--', '+-+', '--+'),
-        ('west', False) :('+--', '++-', '+++', '+-+'),
-        ('south', False) :('++-', '-+-', '-++', '+++'),
-        ('up', False) :('--+', '+-+', '+++', '-++'),
-        ('down', False) :('-+-', '++-', '+--', '---'),
-        ('west', True) :('++-', '+--', '+-+', '+++'),
-        ('north', True) :('+--', '---', '--+', '+-+'),
-        ('east', True) :('---', '-+-', '-++', '--+'),
-        ('south', True) :('-+-', '++-', '+++', '-++'),
-        ('up', True) :('+-+', '--+', '-++', '+++'),
-        ('down', True) :('++-', '-+-', '---', '+--'),
+        ('east', False): ('-+-', '---', '--+', '-++'),
+        ('north', False): ('---', '+--', '+-+', '--+'),
+        ('west', False): ('+--', '++-', '+++', '+-+'),
+        ('south', False): ('++-', '-+-', '-++', '+++'),
+        ('up', False): ('--+', '+-+', '+++', '-++'),
+        ('down', False): ('-+-', '++-', '+--', '---'),
+        ('west', True): ('++-', '+--', '+-+', '+++'),
+        ('north', True): ('+--', '---', '--+', '+-+'),
+        ('east', True): ('---', '-+-', '-++', '--+'),
+        ('south', True): ('-+-', '++-', '+++', '-++'),
+        ('up', True): ('+-+', '--+', '-++', '+++'),
+        ('down', True): ('++-', '-+-', '---', '+--'),
     }
 
     p_options: list[list[str]]
@@ -511,8 +521,8 @@ class CubePolygonsSolver:
 
     @staticmethod
     def _get_vertices_order(
-        name: FaceName, mirror: bool,
-        bound_box_vertices: List[str | None]
+            name: FaceName, mirror: bool,
+            bound_box_vertices: List[str | None]
     ) -> Tuple[int, int, int, int]:
         '''Gets the order of vertices for given cube polygon'''
         mc_mapping_uv_order = CubePolygonsSolver.MC_MAPPING_UV_ORDERS[
@@ -555,9 +565,9 @@ class CubePolygonsSolver:
         error in solution. If the solution doesn't provide any information
         about
         '''
-        used_face_patterns = [False]*6
+        used_face_patterns = [False] * 6
         for polygon in self.polygons:
-            complete_face: list[str | None] = [None]*4
+            complete_face: list[str | None] = [None] * 4
             for i, vertex_index in enumerate(polygon.vertices):
                 complete_face[i] = self.solution[vertex_index]
             if None in complete_face:
@@ -572,7 +582,7 @@ class CubePolygonsSolver:
                 return False  # Matching face_pattern not found
         return True
 
-    def solve(self, vertex_index: int=0):
+    def solve(self, vertex_index: int = 0):
         '''
         Assigns the vertices to their positions (fills the self.solution table)
         using constraints from self.p_options and self.polygons.
@@ -588,10 +598,11 @@ class CubePolygonsSolver:
             if vertex_index >= 7:
                 self.solved = True
                 return True
-            if self.solve(vertex_index+1):
+            if self.solve(vertex_index + 1):
                 return True
         self.solution[vertex_index] = None
         return False
+
 
 class CubePolygons(NamedTuple):
     '''
@@ -647,7 +658,7 @@ class CubePolygons(NamedTuple):
             "+++": np.array(ppp), "++-": np.array(ppm)
         }
 
-        p_options: List[List[str]] =  []
+        p_options: List[List[str]] = []
         for vertex_id in range(8):
             vertex_crds = np.array(cube.data.vertices[vertex_id].co)
             # Find the closest point of bounding box (key from bb_crds)
@@ -655,7 +666,7 @@ class CubePolygons(NamedTuple):
             for k, v in bb_crds.items():
                 p_options.append([])
                 curr_distance: float = np.linalg.norm(
-                    v-vertex_crds)  # type: ignore
+                    v - vertex_crds)  # type: ignore
                 if shortest_distance is None:
                     shortest_distance = curr_distance
                     p_options[vertex_id] = [k]
@@ -684,6 +695,7 @@ class CubePolygons(NamedTuple):
         yield self.up
         yield self.down
 
+
 class CubePolygon(NamedTuple):
     '''
     Single face in :class:`CubePolygons`.
@@ -711,7 +723,7 @@ class CubePolygon(NamedTuple):
         '''
         # The indexing must be a tuple to work with numpy, see issue  #111
         ordered_loop_indices = np.array(self.side.loop_indices)[(self.order,)]
-        
+
         crds = np.array([uv_layer.data[i].uv for i in ordered_loop_indices])
         return crds
 
@@ -743,7 +755,7 @@ class CubePolygon(NamedTuple):
         max_ = crds.max(axis=0)
         # All loops in the corners
         if not (
-            np.isclose(crds, min_) | np.isclose(crds, max_)
+                np.isclose(crds, min_) | np.isclose(crds, max_)
         ).all():
             return False, False, False
 
@@ -759,6 +771,7 @@ class CubePolygon(NamedTuple):
         # is_valid, is_u_flipped, is_v_flipped
         return True, lb[0] != min_[0], lb[1] != min_[1]
 
+
 class McblendObjectGroup:
     '''
     A group of :class:`McblendObject`s often used as a main datasource for
@@ -773,10 +786,12 @@ class McblendObjectGroup:
         equivalent to animating everything else in opposite way.
     '''
     data: dict[ObjectId, McblendObject]
+    object: Object
     world_origin: Object | None
 
     def __init__(self, armature: Object, world_origin: Optional[Object]):
         self.data = {}
+        self.object = armature
         '''the content of the group.'''
         self.world_origin = world_origin
         self._load_objects(armature)
@@ -840,7 +855,7 @@ class McblendObjectGroup:
                 continue
             parentobj_id = ObjectId(obj.parent.name, obj.parent_bone)
             obj_id = ObjectId(obj.name, "")
-            if obj.type  == 'MESH':
+            if obj.type == 'MESH':
                 self.data[obj_id] = McblendObject(
                     thisobj_id=obj_id, thisobj=obj, parentobj_id=parentobj_id,
                     children_ids=[], mctype=MCObjType.CUBE, group=self)
@@ -872,6 +887,7 @@ class McblendObjectGroup:
                     children_ids=[], mctype=MCObjType.LOCATOR, group=self)
                 self.data[parentobj_id].children_ids.append(obj_id)
 
+
 def cyclic_equiv(u: list[Any], v: list[Any]) -> bool:
     '''
     Compare cyclic equivalency of two lists.
@@ -895,6 +911,7 @@ def cyclic_equiv(u: list[Any], v: list[Any]) -> bool:
             j += k
     return False
 
+
 def apply_obj_transform_keep_origin(obj: Object):
     '''
     Apply object transformations but keep the origin in place. Resets object
@@ -906,13 +923,14 @@ def apply_obj_transform_keep_origin(obj: Object):
     _, rot, scl = obj.matrix_local.decompose()
     # loc_mat = Matrix.Translation(loc)
     rot_mat = rot.to_matrix().to_4x4()
-    scl_mat =  (
-        Matrix.Scale(scl[0], 4, Vector([1,0,0])) @
-        Matrix.Scale(scl[1], 4, Vector([0,1,0])) @
-        Matrix.Scale(scl[2], 4, Vector([0,0,1]))
+    scl_mat = (
+            Matrix.Scale(scl[0], 4, Vector([1, 0, 0])) @
+            Matrix.Scale(scl[1], 4, Vector([0, 1, 0])) @
+            Matrix.Scale(scl[2], 4, Vector([0, 0, 1]))
     )
     for vertex in obj.data.vertices:
         vertex.co = (rot_mat @ scl_mat) @ vertex.co
+
 
 def fix_cube_rotation(obj: Object):
     '''
@@ -955,7 +973,6 @@ def fix_cube_rotation(obj: Object):
     # rotations) will not change its rotation and won't flip its scale to -1.
     # It will have no effect.
 
-
     # Rotate the mesh
     for vertex in obj.data.vertices:
         vertex.co = rotation_matrix @ vertex.co
@@ -966,13 +983,14 @@ def fix_cube_rotation(obj: Object):
     loc, rot, scl = obj.matrix_local.decompose()
     loc_mat = Matrix.Translation(loc)
     rot_mat = rot.to_matrix().to_4x4()
-    scl_mat =  (
-        Matrix.Scale(scl[0],4, Vector([1,0,0])) @
-        Matrix.Scale(scl[1],4, Vector([0,1,0])) @
-        Matrix.Scale(scl[2],4, Vector([0,0,1]))
+    scl_mat = (
+            Matrix.Scale(scl[0], 4, Vector([1, 0, 0])) @
+            Matrix.Scale(scl[1], 4, Vector([0, 1, 0])) @
+            Matrix.Scale(scl[2], 4, Vector([0, 0, 1]))
     )
 
     obj.matrix_local = loc_mat @ counter_rotation @ rot_mat @ scl_mat
+
 
 def get_vect_json(arr: Iterable[float | int]) -> list[float]:
     '''
@@ -987,6 +1005,7 @@ def get_vect_json(arr: Iterable[float | int]) -> list[float]:
         if result[i] == -0.0:
             result[i] = 0.0
     return result
+
 
 def star_pattern_match(text: str, pattern: str) -> bool:
     '''
@@ -1014,7 +1033,7 @@ def star_pattern_match(text: str, pattern: str) -> bool:
     matches[0][0] = True
 
     # Only paterns made out of '*' can match empty stirng
-    for p in range(1, lenp+1):
+    for p in range(1, lenp + 1):
         # Propagate matching apttern as long as long as the
         # pattern uses only '*'
         if pattern[p - 1] == '*':
@@ -1032,10 +1051,10 @@ def star_pattern_match(text: str, pattern: str) -> bool:
                 # B) Shorter text matched this pattern, and it ends with '*'
                 # so adding characters doesn't change anything
                 matches[t][p] = (
-                    matches[t][p - 1] or
-                    matches[t - 1][p]
+                        matches[t][p - 1] or
+                        matches[t - 1][p]
                 )
-            elif pattern[p -1] == text[t - 1]:
+            elif pattern[p - 1] == text[t - 1]:
                 # One way to propagate matching value
                 # If the pattern with one less character matched the text
                 # with one less character (and we have a matching pair now)
