@@ -3,7 +3,6 @@ Functions used directly by the blender operators.
 '''
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import (
     Dict, Iterable, List, Literal, Optional, Tuple, cast, Callable, Any)
@@ -35,7 +34,6 @@ from .uv import CoordinatesConverter, UvMapper, UvModelMerger
 from .db_handler import get_db_handler
 from .rp_importer import PksForModelImport
 
-
 def export_model(
         context: Context) -> Tuple[Dict[str, Any], Iterable[str]]:
     '''
@@ -50,7 +48,7 @@ def export_model(
     if armature is None or armature.type != 'ARMATURE':
         # Should never happen (checked in the operator)
         raise ValueError("Selected object is not an armature")
-
+    
     origin: Optional[Object] = None
     use_armature_origin: bool = get_mcblend(
         armature).model_origin == ModelOriginType.ARMATURE.value
@@ -72,16 +70,17 @@ def export_model(
     result['minecraft:geometry'].append(model.json_inner())
     return result, model.yield_warnings()
 
-
-def export_animation(context: Context, armature: bpy.types.Object) -> Dict[str, Any]:
+def export_animation(
+        context: Context, old_dict: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
     '''
     Creates a Minecraft animation (dictionary) from selected objects.
 
     :param context: the context of running the operator.
-    :param armature: the armature object to export animation from.
+    :param old_dict: optional - JSON dict with animation to write into.
     :returns: JSON dict of Minecraft animations.
     '''
-    logging.info(f'Exporting animation for {armature.name}')
+    armature = context.object  # an armature
     if armature is None or armature.type != 'ARMATURE':
         # Should never happen (checked in the operator)
         raise ValueError("Selected object is not an armature")
@@ -101,7 +100,7 @@ def export_animation(context: Context, armature: bpy.types.Object) -> Dict[str, 
 
     animation = AnimationExport(
         name=anim_data.name,
-        length=(context.scene.frame_end - 1) / context.scene.render.fps,
+        length=(context.scene.frame_end-1)/context.scene.render.fps,
         loop_animation=anim_data.loop,
         single_frame=anim_data.single_frame,
         anim_time_update=anim_data.anim_time_update,
@@ -113,11 +112,8 @@ def export_animation(context: Context, armature: bpy.types.Object) -> Dict[str, 
         }
     )
     animation.load_poses(object_properties, context)
-
-    logging.info(f'Animation exported for {armature.name}: {animation}')
     return animation.json(
-        old_json=None, skip_rest_poses=anim_data.skip_rest_poses)
-
+        old_json=old_dict, skip_rest_poses=anim_data.skip_rest_poses)
 
 def set_uvs(context: Context):
     '''
@@ -128,7 +124,7 @@ def set_uvs(context: Context):
 
     :param context: the execution context.
     '''
-    armature = context.object  # an armature
+    armature = context.object # an armature
     if armature is None or armature.type != 'ARMATURE':
         # Should never happen (checked in the operator)
         raise ValueError("Selected object is not an armature")
@@ -153,6 +149,7 @@ def set_uvs(context: Context):
     for objprop in mapper.uv_boxes:
         objprop.clear_uv_layers()
 
+
     # Update height and width
     if allow_expanding:
         widths = [width]
@@ -171,13 +168,14 @@ def set_uvs(context: Context):
         if "template" in bpy.data.images:
             old_image = bpy.data.images['template']
         image = bpy.data.images.new(
-            "template", width * resolution, height * resolution, alpha=True
+            "template", width*resolution, height*resolution, alpha=True
         )
         if old_image is not None:
             # If exists remap users of old image and remove it
             old_image.user_remap(image)
             bpy.data.images.remove(old_image)
             image.name = "template"
+
 
         # This array represents new texture
         # DIM0:up axis DIM1:right axis DIM2:rgba axis
@@ -195,7 +193,6 @@ def set_uvs(context: Context):
     for curr_uv in mapper.uv_boxes:
         curr_uv.new_uv_layer()
         curr_uv.set_blender_uv(converter)
-
 
 def fix_uvs(context: Context) -> Vector2di:
     '''
@@ -244,10 +241,10 @@ def fix_uvs(context: Context) -> Vector2di:
             ])
             # Try connecting crds to the closest corners of the "bound box"
             # of the UV
-            new_crds = np.empty((4, 2))
+            new_crds = np.empty((4,2))
             first_index: Optional[int] = None
             for i in range(4):
-                distances = np.linalg.norm(expected - crds[i], axis=1)
+                distances = np.linalg.norm(expected-crds[i], axis=1)
                 # First result of where, first (and only) coordinate -> [0][0]
                 index = np.where(distances == np.min(distances))[0][0]
                 if first_index is None:
@@ -255,10 +252,10 @@ def fix_uvs(context: Context) -> Vector2di:
                 new_crds[i] = expected[index]
 
             if not (  # Still not valid. Rearrange based on left down
-                    np.allclose(new_crds, expected) or
-                    np.allclose(new_crds, expected[[1, 0, 3, 2]]) or  # flip left right
-                    np.allclose(new_crds, expected[[2, 3, 0, 1]]) or  # flip up down
-                    np.allclose(new_crds, expected[[3, 2, 1, 0]])  # flip both
+                np.allclose(new_crds, expected) or
+                np.allclose(new_crds, expected[[1, 0, 3, 2]]) or  # flip left right
+                np.allclose(new_crds, expected[[2, 3, 0, 1]]) or  # flip up down
+                np.allclose(new_crds, expected[[3, 2, 1, 0]])  # flip both
             ):
                 if first_index == 0:
                     new_crds = expected
@@ -274,13 +271,12 @@ def fix_uvs(context: Context) -> Vector2di:
             ordered_loop_indices = np.array(
                 polygon.side.loop_indices)[polygon.order,]
             for i, loop_index in enumerate(ordered_loop_indices):
-                uv_layer.data[loop_index].uv = new_crds[i]
+                uv_layer.data[loop_index].uv =  new_crds[i]
             fixed_faces += 1
         if fixed_faces > 0:
             total_fixed_cubes += 1
             total_fixed_uv_faces += fixed_faces
     return total_fixed_cubes, total_fixed_uv_faces
-
 
 def import_model(
         data: Dict[str, Any], geometry_name: str, context: Context
@@ -313,7 +309,6 @@ def import_model(
         armature.name = geometry.identifier
     return model_loader.warnings
 
-
 def separate_mesh_cubes(context: Context):
     '''
     Separate selected object with meshes that use cuboids only by the lose
@@ -331,7 +326,6 @@ def separate_mesh_cubes(context: Context):
         bpy.context.view_layer.update()
         fix_cube_rotation(obj)
     return edited_objects
-
 
 def inflate_objects(
         context: Context, objects: List[Object],
@@ -366,12 +360,12 @@ def inflate_objects(
             if get_mcblend(obj).inflate != 0.0:
                 if relative:
                     effective_inflate = (
-                            get_mcblend(obj).inflate + inflate)
+                        get_mcblend(obj).inflate + inflate)
                 else:
                     effective_inflate = inflate
                 delta_inflate = (
-                        effective_inflate -
-                        get_mcblend(obj).inflate)
+                    effective_inflate -
+                    get_mcblend(obj).inflate)
                 get_mcblend(obj).inflate = effective_inflate
             else:
                 delta_inflate = inflate
@@ -387,8 +381,8 @@ def inflate_objects(
 
             # Set new dimensions
             dimensions = (
-                    dimensions +
-                    (2 * delta_inflate / MINECRAFT_SCALE_FACTOR)
+                dimensions +
+                (2*delta_inflate/MINECRAFT_SCALE_FACTOR)
             )
             obj.dimensions = cast(list[float], dimensions)
             context.view_layer.update()
@@ -400,7 +394,6 @@ def inflate_objects(
 
             counter += 1
     return counter
-
 
 def load_rp_to_mcblned(
         context: Context, path: Path):
@@ -458,7 +451,6 @@ def load_rp_to_mcblned(
             attachable.name = name
         last_name = name
 
-
 def unload_rps(context: Context):
     '''
     Unload resrouce pakcs in GUI.
@@ -470,7 +462,6 @@ def unload_rps(context: Context):
     db_handler = get_db_handler()
     db_handler.delete_db()
 
-
 @dataclass
 class RcStackItem:
     '''
@@ -480,7 +471,6 @@ class RcStackItem:
     '''The image with the textue'''
     materials: Dict[str, str] = field(default_factory=dict)
     '''Materials dict with pattern keys and full material names values.'''
-
 
 def import_model_form_project(
         context: Context,
@@ -572,7 +562,7 @@ def import_model_form_project(
 
         # 2.2. Save render controller properties in the armature
         for rc_stack_item in rc_stack:
-            armature_rc = get_mcblend(armature). \
+            armature_rc = get_mcblend(armature).\
                 render_controllers.add()
             if rc_stack_item.texture is not None:
                 armature_rc.texture = rc_stack_item.texture.name
@@ -609,7 +599,7 @@ def import_model_form_project(
                 continue
             try:  # try to use existing material
                 material = blender_materials[tuple(bone_materials_id)]
-            except:  # pylint: disable=bare-except
+            except: # pylint: disable=bare-except
                 # create material
                 material = create_bone_material("MC_Material", bone_materials)
                 blender_materials[tuple(bone_materials_id)] = material
@@ -621,7 +611,6 @@ def import_model_form_project(
                 c.blend_cube.data.materials.append(
                     blender_materials[tuple(bone_materials_id)])
     return warnings
-
 
 def apply_materials(context: Context):
     '''
@@ -698,7 +687,6 @@ def apply_materials(context: Context):
             p.obj_data.materials.append(
                 blender_materials[tuple(bone_materials_id)])
 
-
 @dataclass
 class _PhysicsObjectsGroup:
     '''
@@ -707,7 +695,6 @@ class _PhysicsObjectsGroup:
     rigid_body: Optional[Object] = None
     rigid_body_constraint: Optional[Object] = None
     object_parent_empty: Optional[Object] = None
-
 
 def prepare_physics_simulation(context: Context) -> Dict[str, Any]:
     '''
@@ -803,10 +790,11 @@ def prepare_physics_simulation(context: Context) -> Dict[str, Any]:
                 "kinematic", frame=bpy.context.scene.frame_current)
             rigid_body.rigid_body.kinematic = False
             rigid_body.rigid_body.keyframe_insert(
-                "kinematic", frame=bpy.context.scene.frame_current + 1)
+                "kinematic", frame=bpy.context.scene.frame_current+1)
             # rb - rigid body
             rigid_body.name = f'{bone.obj_name}_rb'
             physics_objects_groups[bone].rigid_body = rigid_body
+
 
             # Add bone parent empty
             empty = bpy.data.objects.new(
@@ -837,7 +825,7 @@ def prepare_physics_simulation(context: Context) -> Dict[str, Any]:
                 "influence", frame=bpy.context.scene.frame_current)
             constraint.influence = 1
             constraint.keyframe_insert(
-                "influence", frame=bpy.context.scene.frame_current + 1)
+                "influence", frame=bpy.context.scene.frame_current+1)
 
             # Object mode
             bpy.ops.object.posemode_toggle()  # pyright: ignore[reportUnknownMemberType]
@@ -873,7 +861,6 @@ def prepare_physics_simulation(context: Context) -> Dict[str, Any]:
 
     return result
 
-
 def merge_models(context: Context) -> None:
     '''
     Merges models of all of the selected armatures and creates a common
@@ -896,7 +883,7 @@ def merge_models(context: Context) -> None:
 
         # Create a merger object
         use_armature_origin: bool = (
-                obj_mcblend.model_origin == ModelOriginType.ARMATURE.value)
+            obj_mcblend.model_origin == ModelOriginType.ARMATURE.value)
         entity = McblendObjectGroup(obj, obj if use_armature_origin else None)
         merger = UvModelMerger(entity, base_image)
 
@@ -924,10 +911,10 @@ def merge_models(context: Context) -> None:
         ])
         # Paste the image into the texture
         min_x = merger.uv[0]
-        max_x = min_x + merger.base_image_size[0]
+        max_x = min_x+merger.base_image_size[0]
         # Y is flipped on the array
-        min_y = mapper.height - merger.uv[1] - merger.base_image_size[1]
-        max_y = mapper.height - merger.uv[1]
+        min_y = mapper.height-merger.uv[1]-merger.base_image_size[1]
+        max_y = mapper.height-merger.uv[1]
         arr[min_y:max_y, min_x:max_x] = pixels
     image.pixels = arr.ravel()  # Apply texture pixels values
 
