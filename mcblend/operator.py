@@ -49,13 +49,14 @@ else:
     CollectionProperty = List
     MCBLEND_UvMaskProperties = Any
 
+
 # Model exporter
 class MCBLEND_OT_ExportModel(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ExportHelper):
+    Operator, ExportHelper):
     '''Operator used for exporting Minecraft models from blender.'''
     # pylint: disable=unused-argument, no-member
     bl_idname = "mcblend.export_model"
-    bl_label = "Export Bedrock Model"
+    bl_label = "导出基岩版模型"
     bl_options = {'REGISTER'}
     bl_description = (
         "Export selected armature as a Minecraft Bedrock Edition model")
@@ -119,18 +120,20 @@ class MCBLEND_OT_ExportModel(  # pyright: ignore[reportIncompatibleMethodOverrid
             self.report({'INFO'}, f'Model saved in {self.filepath}.')
         return {'FINISHED'}
 
+
 def menu_func_mcblend_export_model(self: Any, context: Context):
     '''Used to register the operator in the file export menu.'''
     # pylint: disable=unused-argument
     self.layout.operator(MCBLEND_OT_ExportModel.bl_idname)
 
+
 # Animation exporter
 class MCBLEND_OT_ExportAnimation(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ExportHelper):
+    Operator, ExportHelper):
     '''Operator used for exporting Minecraft animations from blender.'''
     # pylint: disable=unused-argument, no-member
     bl_idname = "mcblend.export_animation"
-    bl_label = "Export Bedrock Animation"
+    bl_label = "导出基岩版动画序列"
     bl_options = {'REGISTER'}
     bl_description = (
         "Export the currently active animation of the selected armature as "
@@ -146,42 +149,32 @@ class MCBLEND_OT_ExportAnimation(  # pyright: ignore[reportIncompatibleMethodOve
 
     @classmethod
     def poll(cls, context: Context) -> bool:
-        if context.mode != 'OBJECT':
-            return False
-        obj = context.object
-        if obj is None:
-            return False
-        if obj.type != 'ARMATURE':
-            return False
-        len_anims = len(
-            get_mcblend(obj).animations)
-        if len_anims == 0:
-            return False
-        curr_anim_id = get_mcblend(obj).active_animation
-        if 0 > curr_anim_id >= len_anims:
-            return False
+        selectedObjects = context.selected_objects
+        for obj in selectedObjects:
+            if obj is None:
+                return False
+            if obj.type != 'ARMATURE':
+                return False
+            len_anims = len(get_mcblend(obj).animations)
+            if len_anims == 0:
+                return False
         return True
 
     def execute(self, context: Context):
-        # Read and validate old animation file
-        old_dict: Optional[Dict[str, Any]] = None
-        filepath: str = self.filepath  # type: ignore
-        try:
-            with open(filepath, 'r', encoding='utf8') as f:  # type: ignore
-                old_dict = json.load(f, cls=JSONCDecoder)
-        except (json.JSONDecodeError, OSError):
-            pass
-        animation_dict = export_animation(context, old_dict)
+        filepath: str = self.filepath
+        animation_dict = export_animation(context)
         # Save file and finish
         with open(filepath, 'w', encoding='utf8') as f:  # type: ignore
             json.dump(animation_dict, f, cls=CompactEncoder)
-        self.report({'INFO'}, f'Animation saved in {filepath}.')
+        self.report({'INFO'}, f'总计 {len(animation_dict)} 个动画序列已导出到 {filepath}.')
         return {'FINISHED'}
+
 
 def menu_func_mcblend_export_animation(self: Any, context: Context):
     '''Used to register the operator in the file export menu.'''
     # pylint: disable=unused-argument
     self.layout.operator(MCBLEND_OT_ExportAnimation.bl_idname)
+
 
 # UV mapper
 class MCBLEND_OT_MapUv(Operator):
@@ -196,7 +189,6 @@ class MCBLEND_OT_MapUv(Operator):
     bl_description = (
         "UV map child cubes of the currently selected armature"
     )
-
 
     @classmethod
     def poll(cls, context: Context):
@@ -231,6 +223,7 @@ class MCBLEND_OT_MapUv(Operator):
 
         self.report({'INFO'}, 'UV maps created successfully.')
         return {'FINISHED'}
+
 
 class MCBLEND_OT_FixUv(Operator):
     '''
@@ -272,6 +265,7 @@ class MCBLEND_OT_FixUv(Operator):
         )
         return {'FINISHED'}
 
+
 # UV grouping
 class MCBLEND_OT_UvGroup(Operator):
     '''Operator used for adding selected objects to an UV group'''
@@ -286,6 +280,7 @@ class MCBLEND_OT_UvGroup(Operator):
             (x.name, x.name, x.name)
             for x in get_mcblend_uv_groups(context.scene)]
         return items
+
     uv_groups_enum: bpy.props.EnumProperty(  # type: ignore
         items=_list_uv_groups, name="UV Groups")
 
@@ -320,6 +315,7 @@ class MCBLEND_OT_UvGroup(Operator):
                 area.tag_redraw()
         return {'FINISHED'}
 
+
 class MCBLEND_OT_ClearUvGroup(Operator):
     '''Operator used for removing selected objects from their UV groups'''
     # pylint: disable=unused-argument, no-member
@@ -341,7 +337,7 @@ class MCBLEND_OT_ClearUvGroup(Operator):
     def execute(self, context: Context):
         for obj in context.selected_objects:
             if obj.type == 'MESH':
-                get_mcblend(obj).uv_group  = ''
+                get_mcblend(obj).uv_group = ''
         self.report({'INFO'}, 'Cleared UV group of selected objects.')
 
         # The object properties display the property edited by this operator
@@ -350,6 +346,7 @@ class MCBLEND_OT_ClearUvGroup(Operator):
             if area.type == 'PROPERTIES':
                 area.tag_redraw()
         return {'FINISHED'}
+
 
 # Inflate property
 class MCBLEND_OT_SetInflate(Operator):
@@ -399,6 +396,7 @@ class MCBLEND_OT_SetInflate(Operator):
             self.inflate_value, self.mode)  # type: ignore
         return {'FINISHED'}
 
+
 # Separate mesh cubes
 class MCBLEND_OT_SeparateMeshCubes(Operator):
     '''
@@ -432,9 +430,10 @@ class MCBLEND_OT_SeparateMeshCubes(Operator):
                 {'INFO'}, f"Separated mesh into {edited_objects} objects")
         return {'FINISHED'}
 
+
 # Model Importer
 class MCBLEND_OT_ImportModel(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ImportHelper):
+    Operator, ImportHelper):
     '''Operator used for importing Minecraft models to Blender.'''
     # pylint: disable=unused-argument, no-member
     bl_idname = "mcblend.import_model"
@@ -483,11 +482,13 @@ class MCBLEND_OT_ImportModel(  # pyright: ignore[reportIncompatibleMethodOverrid
             )
         return {'FINISHED'}
 
+
 # Animation (GUI)
 def menu_func_mcblend_import_model(self: Any, context: Context):
     '''Used to register the operator in the file import menu.'''
     # pylint: disable=unused-argument
     self.layout.operator(MCBLEND_OT_ImportModel.bl_idname)
+
 
 def save_animation_properties(
         animation: MCBLEND_AnimationProperties, context: Context):
@@ -505,7 +506,7 @@ def save_animation_properties(
         anim_timeline_marker.name = timeline_marker.name
         anim_timeline_marker.frame = timeline_marker.frame
     animation.nla_tracks.clear()
-    
+
     obj = context.object
     if obj is None:  # TODO - should this be an error?
         return
@@ -514,6 +515,7 @@ def save_animation_properties(
             if not nla_track.mute:
                 cached_nla_track = animation.nla_tracks.add()
                 cached_nla_track.name = nla_track.name
+
 
 def load_animation_properties(animation: MCBLEND_AnimationProperties, context: Context):
     '''
@@ -540,6 +542,7 @@ def load_animation_properties(animation: MCBLEND_AnimationProperties, context: C
         for cached_nla_track in animation.nla_tracks:
             if cached_nla_track.name in object_nla_tracks:
                 object_nla_tracks[cached_nla_track.name].mute = False
+
 
 class MCBLEND_OT_ListAnimations(Operator):
     '''
@@ -600,11 +603,12 @@ class MCBLEND_OT_ListAnimations(Operator):
                 get_mcblend(obj).animations[curr_anim_id], context)
 
         # Set new animation and load its state
-        new_anim_id=int(self.animations_enum)  # type: ignore
-        get_mcblend(obj).active_animation=new_anim_id
+        new_anim_id = int(self.animations_enum)  # type: ignore
+        get_mcblend(obj).active_animation = new_anim_id
         load_animation_properties(
-                get_mcblend(obj).animations[new_anim_id], context)
+            get_mcblend(obj).animations[new_anim_id], context)
         return {'FINISHED'}
+
 
 class MCBLEND_OT_AddAnimation(Operator):
     '''Operator used creating animation settings templates.'''
@@ -650,7 +654,7 @@ class MCBLEND_OT_AddAnimation(Operator):
         # Add new animation and set its properties
         animation_new = get_mcblend(obj).animations.add()
         len_anims = len(get_mcblend(obj).animations)
-        get_mcblend(obj).active_animation=len_anims-1
+        get_mcblend(obj).active_animation = len_anims - 1
         animation_new.name = f'animation{len_anims}'
 
         # The object properties display the property edited by this operator
@@ -659,6 +663,7 @@ class MCBLEND_OT_AddAnimation(Operator):
             if area.type == 'PROPERTIES':
                 area.tag_redraw()
         return {'FINISHED'}
+
 
 class MCBLEND_OT_RemoveAnimation(Operator):
     '''
@@ -700,13 +705,13 @@ class MCBLEND_OT_RemoveAnimation(Operator):
             get_mcblend(obj).active_animation)
 
         # Set new active animation
-        last_active=get_mcblend(obj).active_animation
-        len_anims=len(get_mcblend(obj).animations)
+        last_active = get_mcblend(obj).active_animation
+        len_anims = len(get_mcblend(obj).animations)
         if last_active > 0:
-            get_mcblend(obj).active_animation=last_active-1
+            get_mcblend(obj).active_animation = last_active - 1
 
         # Load data from new active animation
-        curr_anim_id=get_mcblend(obj).active_animation
+        curr_anim_id = get_mcblend(obj).active_animation
         if 0 <= curr_anim_id < len_anims:
             load_animation_properties(
                 get_mcblend(obj).animations[curr_anim_id], context)
@@ -717,6 +722,7 @@ class MCBLEND_OT_RemoveAnimation(Operator):
             if area.type == 'PROPERTIES':
                 area.tag_redraw()
         return {'FINISHED'}
+
 
 # UV group (GUI)
 class MCBLEND_OT_ListUvGroups(Operator):
@@ -734,7 +740,7 @@ class MCBLEND_OT_ListUvGroups(Operator):
             (str(i), x.name, x.name)
             for i, x in enumerate(
                 get_mcblend_uv_groups(context.scene))
-            ]
+        ]
         return items
 
     uv_groups_enum: bpy.props.EnumProperty(  # type: ignore
@@ -746,9 +752,10 @@ class MCBLEND_OT_ListUvGroups(Operator):
         panel. Sets the active uv_group.
         '''
         # Set new uv_group and load its state
-        new_uv_group_id=int(self.uv_groups_enum)  # type: ignore
+        new_uv_group_id = int(self.uv_groups_enum)  # type: ignore
         set_mcblend_active_uv_group(context.scene, new_uv_group_id)
         return {'FINISHED'}
+
 
 class MCBLEND_OT_AddUvGroup(Operator):
     '''Operator used for creating new UV groups.'''
@@ -764,7 +771,7 @@ class MCBLEND_OT_AddUvGroup(Operator):
         # Add new uv_group and set its properties
         uv_group_new = get_mcblend_uv_groups(context.scene).add()
         len_groups = len(get_mcblend_uv_groups(context.scene))
-        set_mcblend_active_uv_group(context.scene, len_groups-1)
+        set_mcblend_active_uv_group(context.scene, len_groups - 1)
 
         uv_group_new.name = get_unused_uv_group_name('uv_group')
         sides = [
@@ -781,6 +788,7 @@ class MCBLEND_OT_AddUvGroup(Operator):
             mask.stripes.add()
 
         return {'FINISHED'}
+
 
 class MCBLEND_OT_RemoveUvGroup(Operator):
     '''Operator useful for removing UV groups.'''
@@ -808,8 +816,9 @@ class MCBLEND_OT_RemoveUvGroup(Operator):
 
         # Set new active uv_group
         if group_id > 0:
-            set_mcblend_active_uv_group(context.scene, group_id-1)
+            set_mcblend_active_uv_group(context.scene, group_id - 1)
         return {'FINISHED'}
+
 
 class MCBLEND_OT_CopyUvGroupSide(Operator):
     '''Operator used for copying sides of UV groups.'''
@@ -847,8 +856,8 @@ class MCBLEND_OT_CopyUvGroupSide(Operator):
             source_group_id: int, source_side_id: int,
             target_group_id: int, target_side_id: int):
         if (
-            source_group_id == target_group_id and
-            source_side_id == target_side_id
+                source_group_id == target_group_id and
+                source_side_id == target_side_id
         ):
             return  # If source and target is the same don't do anything
         # Get source
@@ -927,6 +936,7 @@ class MCBLEND_OT_CopyUvGroupSide(Operator):
         self.report({'INFO'}, 'Successfully copied UV face.')
         return {'FINISHED'}
 
+
 # UV Mask (GUI)
 def get_active_masks(context: Context):
     '''Returns active masks of active UV Group from context.'''
@@ -939,6 +949,7 @@ def get_active_masks(context: Context):
     ]
     masks = sides[int(get_mcblend_active_uv_groups_side(context.scene))]
     return masks
+
 
 class MCBLEND_OT_AddUvMask(Operator):
     '''Operator used for adding UV masks to UV groups.'''
@@ -965,6 +976,7 @@ class MCBLEND_OT_AddUvMask(Operator):
         new_mask.stripes.add()
         return {'FINISHED'}
 
+
 class MCBLEND_OT_RemoveUvMask(Operator):
     '''Operator used for removing UV masks from UV groups.'''
     bl_idname = "mcblend.remove_uv_mask"
@@ -984,6 +996,7 @@ class MCBLEND_OT_RemoveUvMask(Operator):
         masks = get_active_masks(context)
         masks.remove(self.target)  # type: ignore
         return {'FINISHED'}
+
 
 class MCBLEND_OT_MoveUvMask(Operator):
     '''Operator used for changing the order of UV masks in UV groups.'''
@@ -1005,6 +1018,7 @@ class MCBLEND_OT_MoveUvMask(Operator):
         masks = get_active_masks(context)
         masks.move(self.move_from, self.move_to)  # type: ignore
         return {'FINISHED'}
+
 
 # UV Mask side colors (GUI)
 class MCBLEND_OT_AddUvMaskColor(Operator):
@@ -1028,6 +1042,7 @@ class MCBLEND_OT_AddUvMaskColor(Operator):
         mask.colors.add()
         return {'FINISHED'}
 
+
 class MCBLEND_OT_RemoveUvMaskColor(Operator):
     '''Operator used for removing colors from UV masks.'''
     bl_idname = "mcblend.remove_uv_mask_color"
@@ -1037,7 +1052,6 @@ class MCBLEND_OT_RemoveUvMaskColor(Operator):
 
     mask_index: IntProperty()  # type: ignore
     color_index: IntProperty()  # type: ignore
-
 
     @classmethod
     def poll(cls, context: Context):
@@ -1050,6 +1064,7 @@ class MCBLEND_OT_RemoveUvMaskColor(Operator):
         mask = masks[self.mask_index]  # type: ignore
         mask.colors.remove(self.color_index)  # type: ignore
         return {'FINISHED'}
+
 
 class MCBLEND_OT_MoveUvMaskColor(Operator):
     '''Operator used for changing the order of the colors in UV masks.'''
@@ -1074,6 +1089,7 @@ class MCBLEND_OT_MoveUvMaskColor(Operator):
         mask.colors.move(self.move_from, self.move_to)  # type: ignore
         return {'FINISHED'}
 
+
 # UV Mask side stripes (GUI)
 class MCBLEND_OT_AddUvMaskStripe(Operator):
     '''Operator used for adding stripes to UV masks.'''
@@ -1096,6 +1112,7 @@ class MCBLEND_OT_AddUvMaskStripe(Operator):
         mask.stripes.add()
         return {'FINISHED'}
 
+
 class MCBLEND_OT_RemoveUvMaskStripe(Operator):
     '''Operator used for removing UV masks from UV groups.'''
     bl_idname = "mcblend.remove_uv_mask_stripe"
@@ -1105,7 +1122,6 @@ class MCBLEND_OT_RemoveUvMaskStripe(Operator):
 
     mask_index: IntProperty()  # type: ignore
     stripe_index: IntProperty()  # type: ignore
-
 
     @classmethod
     def poll(cls, context: Context):
@@ -1118,6 +1134,7 @@ class MCBLEND_OT_RemoveUvMaskStripe(Operator):
         mask = masks[self.mask_index]  # type: ignore
         mask.stripes.remove(self.stripe_index)  # type: ignore
         return {'FINISHED'}
+
 
 class MCBLEND_OT_MoveUvMaskStripe(Operator):
     '''Operator used for changing the order of the stripes in UV groups.'''
@@ -1142,9 +1159,10 @@ class MCBLEND_OT_MoveUvMaskStripe(Operator):
         mask.stripes.move(self.move_from, self.move_to)  # type: ignore
         return {'FINISHED'}
 
+
 # UV Mask exporter
 class MCBLEND_OT_ExportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ExportHelper):
+    Operator, ExportHelper):
     '''Operator used for exporting active UV group from Blender.'''
     # pylint: disable=unused-argument, no-member
     bl_idname = "mcblend.export_uv_group"
@@ -1176,9 +1194,10 @@ class MCBLEND_OT_ExportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
         self.report({'INFO'}, f'UV group saved in {self.filepath}.')
         return {'FINISHED'}
 
+
 # UV Mask exporter
 class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ImportHelper):
+    Operator, ImportHelper):
     '''Operator used for importing UV groups to Blender.'''
     # pylint: disable=unused-argument, no-member, too-many-boolean-expressions
     bl_idname = "mcblend.import_uv_group"
@@ -1205,20 +1224,20 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                 "Some of the masks are missing the 'mask_type' definition.")
         mask_type = mask_data["mask_type"]
         if not isinstance(mask_type, str):
-            return  (
+            return (
                 f"Mask type property must be a string not a {type(mask_type)}")
         if mask_type not in [m.value for m in UvMaskTypes]:
             return f'Unknown mask type: {mask_type}'
-        mask=side.add()
+        mask = side.add()
         mask.mask_type = mask_type
 
         # Loading properties of the mask
         # Loading relative_boundaries first because they affect other properties
         relative_boundaries: bool = False
         if mask_type in [
-                UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.ELLIPSE_MASK.value,
-                UvMaskTypes.RECTANGLE_MASK.value,
-                UvMaskTypes.STRIPES_MASK.value]:
+            UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.ELLIPSE_MASK.value,
+            UvMaskTypes.RECTANGLE_MASK.value,
+            UvMaskTypes.STRIPES_MASK.value]:
             if 'relative_boundaries' in mask_data:
                 if isinstance(mask_data['relative_boundaries'], bool):
                     relative_boundaries = mask_data['relative_boundaries']
@@ -1230,7 +1249,7 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
             if 'mode' in mask_data:
                 mode = mask_data['mode']
                 if mode not in [m.value for m in MixMaskMode]:
-                    loading_warning=f'Unknown mode {mode}'
+                    loading_warning = f'Unknown mode {mode}'
                 else:
                     mask.mode = mode
             if 'children' in mask_data:
@@ -1260,7 +1279,7 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                         for value_data in color_data:
                             if not isinstance(value_data, (float, int)):
                                 is_color = False
-                                loading_warning =(
+                                loading_warning = (
                                     'All values of color must be '
                                     'floats in range 0.0-1.0')
                                 break
@@ -1280,8 +1299,8 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                 else:
                     mask.normalize = normalize
         if mask_type in [
-                UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.ELLIPSE_MASK.value,
-                UvMaskTypes.RECTANGLE_MASK.value]:
+            UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.ELLIPSE_MASK.value,
+            UvMaskTypes.RECTANGLE_MASK.value]:
             if relative_boundaries:
                 if 'p1' in mask_data:
                     if (
@@ -1333,7 +1352,7 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                             '"p2" property must be an integer if '
                             '"relative_boundaries" are False')
         if mask_type in [
-                UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.STRIPES_MASK.value]:
+            UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.STRIPES_MASK.value]:
             if 'stripes' in mask_data:
                 stripes = mask_data['stripes']
                 if not isinstance(stripes, list):
@@ -1373,9 +1392,9 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                                 loading_warning = (
                                     'Stripe strength must be a float.')
         if mask_type in [
-                UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.ELLIPSE_MASK.value,
-                UvMaskTypes.RECTANGLE_MASK.value, UvMaskTypes.MIX_MASK.value,
-                UvMaskTypes.RANDOM_MASK.value]:
+            UvMaskTypes.GRADIENT_MASK.value, UvMaskTypes.ELLIPSE_MASK.value,
+            UvMaskTypes.RECTANGLE_MASK.value, UvMaskTypes.MIX_MASK.value,
+            UvMaskTypes.RANDOM_MASK.value]:
             if 'expotent' in mask_data:
                 expotent = mask_data['expotent']
                 if isinstance(expotent, (float, int)):
@@ -1383,9 +1402,9 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                 else:
                     loading_warning = 'Expotent property must be a float.'
         if mask_type in [
-                UvMaskTypes.ELLIPSE_MASK.value,
-                UvMaskTypes.RECTANGLE_MASK.value, UvMaskTypes.MIX_MASK.value,
-                UvMaskTypes.RANDOM_MASK.value]:
+            UvMaskTypes.ELLIPSE_MASK.value,
+            UvMaskTypes.RECTANGLE_MASK.value, UvMaskTypes.MIX_MASK.value,
+            UvMaskTypes.RANDOM_MASK.value]:
             if 'strength' in mask_data:
                 strength = mask_data['strength']
                 if (
@@ -1400,8 +1419,8 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                         '"strength" property must be a list of '
                         'two floats in range 0.0 to 1.0.')
         if mask_type in [
-                UvMaskTypes.ELLIPSE_MASK.value,
-                UvMaskTypes.RECTANGLE_MASK.value]:
+            UvMaskTypes.ELLIPSE_MASK.value,
+            UvMaskTypes.RECTANGLE_MASK.value]:
             if 'hard_edge' in mask_data:
                 if isinstance(mask_data['hard_edge'], bool):
                     hard_edge = mask_data['hard_edge']
@@ -1442,7 +1461,7 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
                     for value_data in color_data:  # type: ignore
                         if not isinstance(value_data, (float, int)):
                             is_color = False
-                            loading_warning =(
+                            loading_warning = (
                                 'All values of color must be '
                                 'floats in range 0.0-1.0')
                             break
@@ -1483,28 +1502,28 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
         # Add new uv_group and set its properties
         uv_group_new = get_mcblend_uv_groups(context.scene).add()
         len_groups = len(get_mcblend_uv_groups(context.scene))
-        set_mcblend_active_uv_group(context.scene, len_groups-1)
+        set_mcblend_active_uv_group(context.scene, len_groups - 1)
 
         # Currently only version 1 is supported
         if 'name' in data and isinstance(data['name'], str):
-            name =  get_unused_uv_group_name(data['name'])
+            name = get_unused_uv_group_name(data['name'])
         uv_group_new.name = name
 
         # Used for showing warnings about loading process (the loader shows
         # only one warning at a time)
         loading_warning: Optional[str] = None
         if 'side1' in data and isinstance(data['side1'], list):
-            loading_warning=self._load_side(uv_group_new.side1, data['side1'])  # type: ignore
+            loading_warning = self._load_side(uv_group_new.side1, data['side1'])  # type: ignore
         if 'side2' in data and isinstance(data['side2'], list):
-            loading_warning=self._load_side(uv_group_new.side2, data['side2'])  # type: ignore
+            loading_warning = self._load_side(uv_group_new.side2, data['side2'])  # type: ignore
         if 'side3' in data and isinstance(data['side3'], list):
-            loading_warning=self._load_side(uv_group_new.side3, data['side3'])  # type: ignore
+            loading_warning = self._load_side(uv_group_new.side3, data['side3'])  # type: ignore
         if 'side4' in data and isinstance(data['side4'], list):
-            loading_warning=self._load_side(uv_group_new.side4, data['side4'])  # type: ignore
+            loading_warning = self._load_side(uv_group_new.side4, data['side4'])  # type: ignore
         if 'side5' in data and isinstance(data['side5'], list):
-            loading_warning=self._load_side(uv_group_new.side5, data['side5'])  # type: ignore
+            loading_warning = self._load_side(uv_group_new.side5, data['side5'])  # type: ignore
         if 'side6' in data and isinstance(data['side6'], list):
-            loading_warning=self._load_side(uv_group_new.side6, data['side6'])  # type: ignore
+            loading_warning = self._load_side(uv_group_new.side6, data['side6'])  # type: ignore
 
         # If something didn't load propertly also display a warning
         if loading_warning is not None:
@@ -1514,6 +1533,7 @@ class MCBLEND_OT_ImportUvGroup(  # pyright: ignore[reportIncompatibleMethodOverr
             # There is no area when running from CLI
             context.area.tag_redraw()
         return {'FINISHED'}
+
 
 # Events
 class MCBLEND_OT_AddEvent(Operator):
@@ -1527,6 +1547,7 @@ class MCBLEND_OT_AddEvent(Operator):
         event_new = get_mcblend_events(context.scene).add()
         event_new.name = get_unused_event_name('event')
         return {'FINISHED'}
+
 
 class MCBLEND_OT_RemoveEvent(Operator):
     '''Operator used for removing events.'''
@@ -1551,8 +1572,9 @@ class MCBLEND_OT_RemoveEvent(Operator):
 
         # Set new active event
         if active_event_id > 0:
-            set_mcblend_active_event(context.scene, active_event_id-1)
+            set_mcblend_active_event(context.scene, active_event_id - 1)
         return {'FINISHED'}
+
 
 class MCBLEND_OT_AddEffect(Operator):
     '''Operator used for adding effects to events.'''
@@ -1581,6 +1603,7 @@ class MCBLEND_OT_AddEffect(Operator):
         effect = event.effects.add()
         effect.effect_type = self.effect_type  # type: ignore
         return {'FINISHED'}
+
 
 class MCBLEND_OT_RemoveEffect(Operator):
     '''Operator used for removeing effects effects from events.'''
@@ -1611,9 +1634,10 @@ class MCBLEND_OT_RemoveEffect(Operator):
 
         return {'FINISHED'}
 
+
 # Project - RP entity import
 class MCBLEND_OT_LoadRp(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ImportHelper):
+    Operator, ImportHelper):
     '''Imports entity form Minecraft project into blender'''
     # pylint: disable=unused-argument, no-member
     bl_idname = "mcblend.load_rp"
@@ -1632,13 +1656,13 @@ class MCBLEND_OT_LoadRp(  # pyright: ignore[reportIncompatibleMethodOverride]
         load_rp_to_mcblned(context, rp_path)
         return {'FINISHED'}
 
+
 class MCBLEND_OT_UnloadRps(Operator):
     '''Unloads all resource packs from the database'''
     bl_idname = "mcblend.unload_rps"
     bl_label = "Unload Resource Packs"
     bl_description = "Unloads all resource packs from the project"
     bl_options = {'REGISTER'}
-
 
     def invoke(self, context: Context, event: Event):
         return context.window_manager.invoke_confirm(self, event)
@@ -1647,8 +1671,9 @@ class MCBLEND_OT_UnloadRps(Operator):
         unload_rps(context)
         return {'FINISHED'}
 
+
 class MCBLEND_OT_LoadDatabase(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ImportHelper):
+    Operator, ImportHelper):
     '''Loads SQLite database with resource pack data.'''
     # pylit: disable=unused-argument, no-member
     bl_idname = "mcblend.load_database"
@@ -1669,8 +1694,9 @@ class MCBLEND_OT_LoadDatabase(  # pyright: ignore[reportIncompatibleMethodOverri
         self.report({'INFO'}, f"Loading database from {self.filepath}")
         return {'FINISHED'}
 
+
 class MCBLEND_OT_SaveDatabase(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ExportHelper):
+    Operator, ExportHelper):
     '''Saves SQLite database with resource packs data.'''
     # pylint: disable=unused-argument, no-member
     bl_idname = "mcblend.save_database"
@@ -1686,6 +1712,7 @@ class MCBLEND_OT_SaveDatabase(  # pyright: ignore[reportIncompatibleMethodOverri
     def execute(self, context: Context):
         self.report({'INFO'}, f"Saving database to {self.filepath}")
         return {'FINISHED'}
+
 
 class MCBLEND_OT_ImportRpEntity(Operator):
     '''Imports entity form Minecraft project into blender'''
@@ -1720,6 +1747,7 @@ class MCBLEND_OT_ImportRpEntity(Operator):
             )
         return {'FINISHED'}
 
+
 class MCBLEND_OT_ImportAttachable(Operator):
     '''Imports attachable form Minecraft project into blender'''
     # pylint: disable=unused-argument, no-member
@@ -1753,6 +1781,7 @@ class MCBLEND_OT_ImportAttachable(Operator):
             )
         return {'FINISHED'}
 
+
 # Armature render controllers
 class MCBLEND_OT_AddFakeRc(Operator):
     '''Adds new render controller to active model (armature).'''
@@ -1778,6 +1807,7 @@ class MCBLEND_OT_AddFakeRc(Operator):
         material.material = 'entity_alphatest'
         return {'FINISHED'}
 
+
 class MCBLEND_OT_RemoveFakeRc(Operator):
     '''Removes render controller from active model (armature).'''
     bl_idname = "mcblend.remove_fake_rc"
@@ -1801,6 +1831,7 @@ class MCBLEND_OT_RemoveFakeRc(Operator):
         rcs.remove(self.rc_index)  # type: ignore
         return {'FINISHED'}
 
+
 class MCBLEND_OT_MoveFakeRc(Operator):
     '''Moves render controller in active to a different spot on the list.'''
     bl_idname = "mcblend.move_fake_rc"
@@ -1816,7 +1847,6 @@ class MCBLEND_OT_MoveFakeRc(Operator):
         rc_index: IntProperty()  # type: ignore
         move_to: IntProperty()  # type: ignore
 
-
     @classmethod
     def poll(cls, context: Context):
         obj = context.object
@@ -1830,6 +1860,7 @@ class MCBLEND_OT_MoveFakeRc(Operator):
         rcs = get_mcblend(context.object).render_controllers
         rcs.move(self.rc_index, self.move_to)
         return {'FINISHED'}
+
 
 class MCBLEND_OT_FakeRcSelectTexture(Operator):
     '''Selects the name of the texture for render controller of a model.'''
@@ -1848,6 +1879,7 @@ class MCBLEND_OT_FakeRcSelectTexture(Operator):
             (x.name, x.name, x.name)
             for x in bpy.data.images]
         return items
+
     image: bpy.props.EnumProperty(  # type: ignore
         items=list_images, name="Image")
 
@@ -1871,7 +1903,7 @@ class MCBLEND_OT_FakeRcSelectTexture(Operator):
 
 
 class MCBLEND_OT_FakeRcOpenTexture(  # pyright: ignore[reportIncompatibleMethodOverride]
-        Operator, ImportHelper):
+    Operator, ImportHelper):
     '''Opens a texture from a file for render controller of a model.'''
     bl_idname = "mcblend.fake_rc_open_texture"
     bl_label = "Open texture"
@@ -1915,6 +1947,7 @@ class MCBLEND_OT_FakeRcOpenTexture(  # pyright: ignore[reportIncompatibleMethodO
         ].texture = img.name
         return {'FINISHED'}
 
+
 # Armature render controllers materials
 class MCBLEND_OT_AddFakeRcMaterial(Operator):
     '''
@@ -1944,6 +1977,7 @@ class MCBLEND_OT_AddFakeRcMaterial(Operator):
         material.material = 'entity_alphatest'
         return {'FINISHED'}
 
+
 class MCBLEND_OT_RemoveFakeRcMaterial(Operator):
     '''
     Removes material from active render controller of active model (armature).
@@ -1972,6 +2006,7 @@ class MCBLEND_OT_RemoveFakeRcMaterial(Operator):
             self.material_index  # type: ignore
         )
         return {'FINISHED'}
+
 
 class MCBLEND_OT_MoveFakeRcMaterial(Operator):
     '''
@@ -2005,6 +2040,7 @@ class MCBLEND_OT_MoveFakeRcMaterial(Operator):
             self.rc_index  # type: ignore
         ].materials.move(self.material_index, self.move_to)  # type: ignore
         return {'FINISHED'}
+
 
 class MCBLEND_OT_FakeRcSMaterailSelectTemplate(Operator):
     '''Selects the material type.'''
@@ -2042,6 +2078,7 @@ class MCBLEND_OT_FakeRcSMaterailSelectTemplate(Operator):
         ].material = self.material  # type: ignore
         return {'FINISHED'}
 
+
 class MCBLEND_OT_FakeRcApplyMaterials(Operator):
     '''Applies the materials to the model'''
     bl_idname = "mcblend.fake_rc_apply_materials"
@@ -2060,6 +2097,7 @@ class MCBLEND_OT_FakeRcApplyMaterials(Operator):
     def execute(self, context: Context):
         apply_materials(context)
         return {'FINISHED'}
+
 
 # Automation
 class MCBLEND_OT_PreparePhysicsSimulation(Operator):
@@ -2083,6 +2121,7 @@ class MCBLEND_OT_PreparePhysicsSimulation(Operator):
     def execute(self, context: Context):
         prepare_physics_simulation(context)
         return {'FINISHED'}
+
 
 class MCBLEND_OT_MergeModels(Operator):
     '''
@@ -2116,7 +2155,6 @@ class MCBLEND_OT_MergeModels(Operator):
             row = layout.row()
             row.label(text=f'geometry.{obj_mcblend.model_name}')
             row.label(text=rc.texture)
-
 
     def invoke(self, context: Context, event: Event):
         return context.window_manager.invoke_props_dialog(self)
