@@ -257,6 +257,9 @@ def register():
 
     # Append operators to the F3 menu
     bpy.types.TOPBAR_MT_file_export.append(
+        menu_func_mcblend_export_model
+    )
+    bpy.types.TOPBAR_MT_file_export.append(
         menu_func_mcblend_export_animation
     )
     bpy.types.TOPBAR_MT_file_import.append(  # type: ignore
@@ -270,6 +273,9 @@ def unregister():
     for _class in reversed(classes):
         bpy.utils.unregister_class(_class)  # type: ignore
 
+    bpy.types.TOPBAR_MT_file_export.append(
+        menu_func_mcblend_export_model
+    )
     bpy.types.TOPBAR_MT_file_export.remove(  # type: ignore
         menu_func_mcblend_export_animation
     )

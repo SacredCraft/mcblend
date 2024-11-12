@@ -830,12 +830,6 @@ class McblendObjectGroup:
         return self.data.items()
 
     def _load_objects(self, armature: Object):
-        '''
-        Loops offspring of an armature and and creates :class:`McblendObjects`
-        for this group. Used by constructor.
-
-        :param armature: the armature used as a root of the object group.
-        '''
         # This assertion should never raise an exception
         assert isinstance(armature.data, Armature), "Object is not an armature"
         # Loop bones
@@ -850,7 +844,7 @@ class McblendObjectGroup:
                 mctype=MCObjType.BONE, group=self)
         for obj in armature.children:
             if obj.parent_type != 'BONE':
-                continue  # TODO - maybe a warning here?
+                continue
             if obj.parent is None:
                 continue
             parentobj_id = ObjectId(obj.parent.name, obj.parent_bone)
@@ -859,9 +853,12 @@ class McblendObjectGroup:
                 self.data[obj_id] = McblendObject(
                     thisobj_id=obj_id, thisobj=obj, parentobj_id=parentobj_id,
                     children_ids=[], mctype=MCObjType.CUBE, group=self)
-                self.data[parentobj_id].children_ids.append(obj_id)
-                # Further offspring of the "child" (share same parent in mc
-                # model)
+                # Check if parent exists in self.data
+                if parentobj_id in self.data:
+                    self.data[parentobj_id].children_ids.append(obj_id)
+                else:
+                    print(f"Warning: Parent object ID {parentobj_id} not found.")
+                # Further offspring of the "child" (share same parent in mc model)
                 offspring: deque[Object] = deque(obj.children)
                 while offspring:
                     child = offspring.pop()
@@ -873,19 +870,22 @@ class McblendObjectGroup:
                             thisobj_id=child_id, thisobj=child,
                             parentobj_id=parentobj_id, children_ids=[],
                             mctype=MCObjType.CUBE, group=self)
-                        self.data[parentobj_id].children_ids.append(child_id)
+                        if parentobj_id in self.data:
+                            self.data[parentobj_id].children_ids.append(child_id)
                         offspring.extend(child.children)
                     elif child.type == 'EMPTY':
                         self.data[child_id] = McblendObject(
                             thisobj_id=child_id, thisobj=child,
                             parentobj_id=parentobj_id, children_ids=[],
                             mctype=MCObjType.LOCATOR, group=self)
-                        self.data[parentobj_id].children_ids.append(child_id)
+                        if parentobj_id in self.data:
+                            self.data[parentobj_id].children_ids.append(child_id)
             elif obj.type == 'EMPTY':
                 self.data[obj_id] = McblendObject(
                     thisobj_id=obj_id, thisobj=obj, parentobj_id=parentobj_id,
                     children_ids=[], mctype=MCObjType.LOCATOR, group=self)
-                self.data[parentobj_id].children_ids.append(obj_id)
+                if parentobj_id in self.data:
+                    self.data[parentobj_id].children_ids.append(obj_id)
 
 
 def cyclic_equiv(u: list[Any], v: list[Any]) -> bool:

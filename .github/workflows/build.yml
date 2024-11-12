@@ -1,0 +1,60 @@
+name: Build
+
+on: [ push ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Cache git lfs
+        uses: actions/cache@v1.1.0
+        with:
+          path: .git/lfs
+          key: .git/lfs
+
+      - name: Pull lfs data, if not cached
+        run: git lfs pull
+
+      # Python 3.10 for mypy testing
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo snap install blender --channel=3.3lts/stable --classic
+          cd $GITHUB_WORKSPACE
+          pip install pyright pytest numpy ./fake_bpy_modules
+
+      - name: Build and install the addon
+        id: build_addon  # Add id to reference the output in artifact upload step
+        run: |
+          cd $GITHUB_WORKSPACE
+          python --version
+          zip_name=$(python build.py | grep 'mcblend_[0-9.]*.zip' -o)
+          echo "::set-output name=zip_name::$zip_name"
+          blender -b --python ./blender_scripts/install.py -- "$GITHUB_WORKSPACE/$zip_name"
+
+      - name: Static Type Checking (Pyright)
+        run: |
+          cd $GITHUB_WORKSPACE
+          python -m pyright ./mcblend
+
+      - name: Tests (Pytest)
+        run: |
+          cd $GITHUB_WORKSPACE
+          python -m pytest
+
+      # Upload the built Blender addon as an artifact
+      - name: Upload Blender addon artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: blender-addon
+          path: $GITHUB_WORKSPACE/${{ steps.build_addon.outputs.zip_name }}
